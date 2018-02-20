@@ -19,7 +19,7 @@ pipeline {
       }
       steps {
           container('maven') {
-              sh "echo branch: $BRANCH_NAME build $BUILD_NUMBER"
+              sh "echo org $ORG app $APP_NAME branch: $BRANCH_NAME build $BUILD_NUMBER"
           }
       }
     }
