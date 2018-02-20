@@ -1,12 +1,11 @@
-
 pipeline {
   agent {
     label "jenkins-maven"
   }
 
   environment {
-    ORG 		= 'jenkinsx'
-    APP_NAME    = 'my-spring-boot-thingy'
+    ORG = 'jenkinsx'
+    APP_NAME = 'my-spring-boot-thingy'
     GIT_CREDS = credentials('jenkins-x-git')
     CHARTMUSEUM_CREDS = credentials('jenkins-x-chartmuseum')
     PREVIEW_VERSION = "SNAPSHOT-$BRANCH_NAME-$BUILD_NUMBER"
@@ -24,27 +23,28 @@ pipeline {
           sh "git config --global credential.helper store"
         }
       }
-      
-    stage('Build Preview Versiont') {
+    }
+
+    stage('Build Preview') {
       when {
-          branch 'PR-*'
+        branch 'PR-*'
       }
       steps {
-          container('maven') {
-            sh "echo org $ORG app $APP_NAME branch: $BRANCH_NAME build $BUILD_NUMBER"
+        container('maven') {
+          sh "echo org $ORG app $APP_NAME branch: $BRANCH_NAME build $BUILD_NUMBER"
 
-            sh "mvn versions:set -DnewVersion=${PREVIEW_VERSION}"
-            
-            sh 'mvn clean deploy'
-            sh "docker build -f Dockerfile.release -t $JENKINS_X_DOCKER_REGISTRY_SERVICE_HOST:$JENKINS_X_DOCKER_REGISTRY_SERVICE_PORT/$ORG/$APP_NAME:${PREVIEW_VERSION} ."
-            sh "docker push $JENKINS_X_DOCKER_REGISTRY_SERVICE_HOST:$JENKINS_X_DOCKER_REGISTRY_SERVICE_PORT/$ORG/$APP_NAME:${PREVIEW_VERSION}"
-          }
+          sh "mvn versions:set -DnewVersion=${PREVIEW_VERSION}"
+
+          sh 'mvn clean deploy'
+          sh "docker build -f Dockerfile.release -t $JENKINS_X_DOCKER_REGISTRY_SERVICE_HOST:$JENKINS_X_DOCKER_REGISTRY_SERVICE_PORT/$ORG/$APP_NAME:${PREVIEW_VERSION} ."
+          sh "docker push $JENKINS_X_DOCKER_REGISTRY_SERVICE_HOST:$JENKINS_X_DOCKER_REGISTRY_SERVICE_PORT/$ORG/$APP_NAME:${PREVIEW_VERSION}"
+        }
       }
     }
-    
-    stage('Build Release Version') {
+
+    stage('Build Release') {
       when {
-          branch 'master'
+        branch 'master'
       }
       steps {
         container('maven') {
@@ -54,7 +54,7 @@ pipeline {
           sh "mvn versions:set -DnewVersion=\$(jx-release-version)"
         }
 
-        dir ('./charts/my-spring-boot-thingy') {
+        dir('./charts/my-spring-boot-thingy') {
           container('maven') {
             sh "make tag"
           }
@@ -70,10 +70,10 @@ pipeline {
 
     stage('Promote to Environment(s)') {
       when {
-          branch 'master'
+        branch 'master'
       }
       steps {
-        dir ('./charts/my-spring-boot-thingy') {
+        dir('./charts/my-spring-boot-thingy') {
           container('maven') {
 
             sh 'make release'
