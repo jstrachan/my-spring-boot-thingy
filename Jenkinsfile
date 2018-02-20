@@ -40,14 +40,13 @@ pipeline {
         }
       }
     }
-    stage('Deploy Staging') {
+    stage('Promote to Environment(s)') {
       steps {
         dir ('./charts/my-spring-boot-thingy') {
           container('maven') {
 
             sh 'make release'
-            // TODO - lets disable for now promotion...
-            // sh 'GIT_USERNAME=$GIT_CREDS_USR GIT_API_TOKEN=$GIT_CREDS_PSW jx promote -b --all-auto --timeout 1h --version \$(cat ../../VERSION)'
+            sh 'GIT_USERNAME=$GIT_CREDS_USR GIT_API_TOKEN=$GIT_CREDS_PSW jx promote -b --all-auto --timeout 1h --version \$(cat ../../VERSION)'
           }
         }
       }
