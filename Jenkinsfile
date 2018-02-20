@@ -13,6 +13,17 @@ pipeline {
 
   stages {
 
+    stage('Pull Request Stuff') {
+      when {
+          branch 'PR-*'
+      }
+      steps {
+          container('maven') {
+              sh "echo branch: $BRANCH_NAME build $BUILD_NUMBER"
+          }
+      }
+    }
+    
     stage('Build Release') {
       steps {
         container('maven') {
