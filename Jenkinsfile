@@ -9,22 +9,12 @@ pipeline {
     APP_NAME    = 'my-spring-boot-thingy'
     GIT_CREDS = credentials('jenkins-x-git')
     CHARTMUSEUM_CREDS = credentials('jenkins-x-chartmuseum')
+    PREVIEW_VERSION = "SNAPSHOT-$BRANCH_NAME-$BUILD_NUMBER"
   }
 
   stages {
 
-    stage('Pull Request Stuff') {
-      when {
-          branch 'PR-*'
-      }
-      steps {
-          container('maven') {
-              sh "echo org $ORG app $APP_NAME branch: $BRANCH_NAME build $BUILD_NUMBER"
-          }
-      }
-    }
-    
-    stage('Build Release') {
+    stage('Git Checkout') {
       steps {
         container('maven') {
           // ensure we're not on a detached head
@@ -32,6 +22,32 @@ pipeline {
 
           // until we switch to the new kubernetes / jenkins credential implementation use git credentials store
           sh "git config --global credential.helper store"
+        }
+      }
+      
+    stage('Build Preview Versiont') {
+      when {
+          branch 'PR-*'
+      }
+      steps {
+          container('maven') {
+            sh "echo org $ORG app $APP_NAME branch: $BRANCH_NAME build $BUILD_NUMBER"
+
+            sh "mvn versions:set -DnewVersion=${PREVIEW_VERSION}"
+            
+            sh 'mvn clean deploy'
+            sh "docker build -f Dockerfile.release -t $JENKINS_X_DOCKER_REGISTRY_SERVICE_HOST:$JENKINS_X_DOCKER_REGISTRY_SERVICE_PORT/$ORG/$APP_NAME:${PREVIEW_VERSION} ."
+            sh "docker push $JENKINS_X_DOCKER_REGISTRY_SERVICE_HOST:$JENKINS_X_DOCKER_REGISTRY_SERVICE_PORT/$ORG/$APP_NAME:${PREVIEW_VERSION}"
+          }
+      }
+    }
+    
+    stage('Build Release Version') {
+      when {
+          branch 'master'
+      }
+      steps {
+        container('maven') {
 
           // so we can retrieve the version in later steps
           sh "echo \$(jx-release-version) > VERSION"
@@ -51,7 +67,11 @@ pipeline {
         }
       }
     }
+
     stage('Promote to Environment(s)') {
+      when {
+          branch 'master'
+      }
       steps {
         dir ('./charts/my-spring-boot-thingy') {
           container('maven') {
