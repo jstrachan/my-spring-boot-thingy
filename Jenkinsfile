@@ -9,6 +9,9 @@ pipeline {
     APP_NAME    = 'my-spring-boot-thingy'
     GIT_CREDS = credentials('jenkins-x-git')
     CHARTMUSEUM_CREDS = credentials('jenkins-x-chartmuseum')
+
+    GIT_USERNAME = "$GIT_CREDS_USR"
+    GIT_API_TOKEN = "$GIT_CREDS_PSW"
   }
 
   stages {
@@ -55,9 +58,14 @@ pipeline {
       steps {
         dir ('./charts/my-spring-boot-thingy') {
           container('maven') {
+            sh 'jx step changelog --version \$(cat ../../VERSION)'
+            sh 'make release'
+            sh 'jx promote -b --all-auto --timeout 1h --version \$(cat ../../VERSION)'
+            /*
             sh 'GIT_USERNAME=$GIT_CREDS_USR GIT_API_TOKEN=$GIT_CREDS_PSW jx step changelog --version \$(cat ../../VERSION)'
             sh 'make release'
             sh 'GIT_USERNAME=$GIT_CREDS_USR GIT_API_TOKEN=$GIT_CREDS_PSW jx promote -b --all-auto --timeout 1h --version \$(cat ../../VERSION)'
+            */
           }
         }
       }
